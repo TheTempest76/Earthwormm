@@ -354,11 +354,14 @@ class RouteGenerator {
       case '/dashboard':
         return MaterialPageRoute(builder: (_) => FarmerDashboardScreen());
       case '/sell-crops':
-        return MaterialPageRoute(builder: (_) => SellCropsScreen());
+        return MaterialPageRoute(builder: (_) => OnboardingScreen());
+        //return MaterialPageRoute(builder: (_) => SellCropsScreen());
       case '/crop-assistance':
-        return MaterialPageRoute(builder: (_) => CropAssistanceScreen());
+        return MaterialPageRoute(builder: (_) => OnboardingScreen());
+        //return MaterialPageRoute(builder: (_) => CropAssistanceScreen());
       case '/insurance':
-        return MaterialPageRoute(builder: (_) => FarmerInsuranceSignup());
+        return MaterialPageRoute(builder: (_) => OnboardingScreen());
+        //return MaterialPageRoute(builder: (_) => FarmerInsuranceSignup());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

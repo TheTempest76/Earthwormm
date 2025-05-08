@@ -31,7 +31,7 @@ class _PricePredictionFormState extends State<PricePredictionForm> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://evident-cosine-442010-n1-440160446921.us-central1.run.app/predict'),
+        Uri.parse('https://crop-price-prediction-731133343114.us-central1.run.app'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'State': state,

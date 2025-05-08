@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+
+
+
+
 class PricePredictionForm extends StatefulWidget {
   const PricePredictionForm({super.key});
 
@@ -23,6 +27,8 @@ class _PricePredictionFormState extends State<PricePredictionForm> {
   bool isLoading = false;
   String? errorMessage;
 
+  
+
   Future<void> getPrediction() async {
     setState(() {
       isLoading = true;
@@ -31,7 +37,7 @@ class _PricePredictionFormState extends State<PricePredictionForm> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://crop-price-prediction-731133343114.us-central1.run.app'),
+        Uri.parse('https://crop-price-prediction-731133343114.us-central1.run.app/predict'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'State': state,
@@ -42,6 +48,10 @@ class _PricePredictionFormState extends State<PricePredictionForm> {
           'Grade': grade,
         }),
       );
+
+
+
+
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -63,7 +73,7 @@ class _PricePredictionFormState extends State<PricePredictionForm> {
       });
     }
   }
-
+  
   @override
   Widget build(BuildContext context) {
     return Padding(

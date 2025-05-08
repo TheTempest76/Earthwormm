@@ -61,6 +61,7 @@ dependencies:
   vibration: 
   confetti: ^0.7.0
   just_audio: ^0.9.42
+  csv: ^5.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -92,6 +93,7 @@ flutter:
     - images/ground_nut.png
     - images/cotton.png
     - images/maize.png
+    - assets/one_month_price.csv
   #   - images/a_dot_ham.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -101,7 +103,7 @@ flutter:
   # https://flutter.dev/to/asset-from-package
 
   # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
+  # in this "_utter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:

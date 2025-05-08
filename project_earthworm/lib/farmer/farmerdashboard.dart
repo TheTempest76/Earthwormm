@@ -15,6 +15,78 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:carousel_slider/carousel_controller.dart'; // Add this import
 import 'package:geocoding/geocoding.dart';
+import 'package:project_earthworm/farmer/farmer/price_prediction_graphs.dart';
+
+import 'package:fl_chart/fl_chart.dart';
+
+
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:csv/csv.dart';
+
+Future<List<double>> getPriceDataFromCsv({
+  required String state,
+  required String district,
+  required String market,
+  required String commodity,
+  required String variety,
+  required String grade,
+}) async {
+  final rawData = await rootBundle.loadString('assets/one_month_price.csv');
+  List<List<dynamic>> csvData = const CsvToListConverter().convert(rawData);
+
+  // Extract headers
+  final headers = csvData.first;
+  final dataRows = csvData.sublist(1);
+
+  for (var row in dataRows) {
+    if (row[0] == state &&
+        row[1] == district &&
+        row[2] == market &&
+        row[3] == commodity &&
+        row[4] == variety &&
+        row[5] == grade) {
+      // Prices start from column index 10 onwards (Day_1 to Day_31)
+      return row.sublist(10, 40).map((e) => double.tryParse(e.toString()) ?? 0.0).toList();
+    }
+  }
+
+  throw Exception("Matching crop data not found.");
+}
+
+
+
+class PriceChart extends StatelessWidget {
+  final List<double> prices;
+
+  PriceChart({required this.prices});
+
+  @override
+  Widget build(BuildContext context) {
+    return LineChart(
+      LineChartData(
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 5,
+              getTitlesWidget: (value, meta) => Text('Day ${value.toInt()}'),
+            ),
+          ),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: List.generate(prices.length, (i) => FlSpot(i + 1.0, prices[i])),
+            isCurved: true,
+            color: Colors.green,
+            barWidth: 2,
+            dotData: FlDotData(show: false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1310,7 +1382,25 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
       ),
     );
   }
-
+  Widget _buildPricePredictionGraph() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Price Prediction Graph/ಬೆಲೆ ಮುನ್ಸೂಚನೆ ಗ್ರಾಫ್',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 16),
+            PriceGraphWidget(),
+          ],
+        ),
+      ),
+    );
+  }
   Widget _buildPricePredictionSection() {
   return Card(
     elevation: 4,
@@ -1771,7 +1861,18 @@ class PricePredictionForm extends StatefulWidget {
 
 class _PricePredictionFormState extends State<PricePredictionForm> {
   final _formKey = GlobalKey<FormState>();
-  
+    late final String rawData;
+
+  @override
+  void initState() {
+    super.initState();
+    loadCsvData();
+  }
+
+  Future<void> loadCsvData() async {
+    rawData = await rootBundle.loadString('assets/one_month_price.csv');
+    print("CSV Loaded: ${rawData.substring(0, 100)}"); // Check first few characters
+  }
   String? state;
   String? district;
   String? market;
@@ -1791,7 +1892,7 @@ class _PricePredictionFormState extends State<PricePredictionForm> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://evident-cosine-442010-n1-440160446921.us-central1.run.app/predict'),
+        Uri.parse('https://crop-price-prediction-731133343114.us-central1.run.app/predict' ),  
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'State': state,
@@ -1802,7 +1903,31 @@ class _PricePredictionFormState extends State<PricePredictionForm> {
           'Grade': grade,
         }),
       );
+            if (response.statusCode == 200) {
+        final priceList = await getPriceDataFromCsv(
+        state: state!,
+        district: district!,
+        market: market!,
+        commodity: commodity!,
+        variety: variety!,
+        grade: grade!,
+  );
 
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: Text("30-Day Price Chart")),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: PriceChart(prices: priceList),
+        ),
+      ),
+    ),
+  );
+
+  
+}
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -1823,6 +1948,7 @@ class _PricePredictionFormState extends State<PricePredictionForm> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

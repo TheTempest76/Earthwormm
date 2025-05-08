@@ -1,0 +1,2 @@
+D:/dev/Earthworm/project_earthworm/android/app/.cxx/Debug/526g4q14/x86_64/CMakeFiles/edit_cache.dir
+D:/dev/Earthworm/project_earthworm/android/app/.cxx/Debug/526g4q14/x86_64/CMakeFiles/rebuild_cache.dir

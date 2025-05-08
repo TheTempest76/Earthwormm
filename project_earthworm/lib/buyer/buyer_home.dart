@@ -358,8 +358,7 @@ class BuyerHomePage extends StatelessWidget {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => ChatbotWebView(
-                                    chatbotUrl:
-                                        "https://effulgent-semifreddo-39d899.netlify.app/",
+                                   
                                   ),
                                 ),
                               )),

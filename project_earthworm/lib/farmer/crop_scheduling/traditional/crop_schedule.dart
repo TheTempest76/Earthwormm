@@ -40,7 +40,7 @@ class _FarmingScheduleScreenState extends State<FarmingScheduleScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyCAGtWDRBB3dQf9eqiJLqAsjrUHpQB3seI",
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyDVgJvXxHMTzH7Jd2IXuOcGMGNp_R8_uX0",
         ),
         headers: {"Content-Type": "application/json"},
         body: json.encode({

@@ -5,6 +5,7 @@ import 'package:project_earthworm/farmer/calculator/calculator_home.dart';
 import 'package:project_earthworm/farmer/farmerdashboard.dart';
 import 'insurance_signup.dart';
 import "package:project_earthworm/buyer/chatboat.dart";
+import "package:project_earthworm/farmer/SellingCrops/sellingCropHomePage.dart";
 
 enum Language { English, Kannada, Hindi }
 
@@ -238,7 +239,7 @@ class HomeScreen extends StatelessWidget {
                 localizedStrings['sell_your_crops']!,
                 localizedStrings['manage_sales']!,
                 Icons.store,
-                '/sell-crops',
+                '/sell-crops-now',
                 Color(0xFF43A047), // Slightly darker green
                 boxWidth,
               ),
@@ -354,14 +355,13 @@ class RouteGenerator {
       case '/dashboard':
         return MaterialPageRoute(builder: (_) => FarmerDashboardScreen());
       case '/sell-crops':
-        return MaterialPageRoute(builder: (_) => OnboardingScreen());
-        //return MaterialPageRoute(builder: (_) => SellCropsScreen());
+        return MaterialPageRoute(builder: (_) => SellCropsScreen());
+      case '/sell-crops-now':
+        return MaterialPageRoute(builder: (_) => SellingCropHomePage());
       case '/crop-assistance':
-        return MaterialPageRoute(builder: (_) => OnboardingScreen());
-        //return MaterialPageRoute(builder: (_) => CropAssistanceScreen());
+        return MaterialPageRoute(builder: (_) => CropAssistanceScreen());
       case '/insurance':
-        return MaterialPageRoute(builder: (_) => OnboardingScreen());
-        //return MaterialPageRoute(builder: (_) => FarmerInsuranceSignup());
+        return MaterialPageRoute(builder: (_) => FarmerInsuranceSignup());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

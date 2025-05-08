@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/opt/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/home/adityaswadi/Android/Sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/home/adityaswadi/Dev/Earthwormm/project_earthworm/android/app/.cxx/Debug/446o5cf3/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/home/adityaswadi/Android/Sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/home/adityaswadi/Dev/Earthwormm/project_earthworm/android/app/.cxx/Debug/446o5cf3/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

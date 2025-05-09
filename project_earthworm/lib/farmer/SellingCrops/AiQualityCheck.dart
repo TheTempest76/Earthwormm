@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AICropAnalysisPage extends StatefulWidget {
   final Map<String, dynamic> formData;
@@ -16,26 +17,37 @@ class AICropAnalysisPage extends StatefulWidget {
 class _AICropAnalysisPageState extends State<AICropAnalysisPage> {
   bool _isLoading = false;
   String _geminiResponse = '';
-  File? _image; // Variable to hold the selected image
+  File? _image;
+  bool _analysisDone = false;
+  String? _cloudinaryImageUrl;
 
   final ImagePicker _picker = ImagePicker();
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-
     if (pickedFile != null) {
       setState(() {
-        _image = File(pickedFile.path); // Store the picked image
+        _image = File(pickedFile.path);
+        _geminiResponse = '';
+        _analysisDone = false;
+        _cloudinaryImageUrl = null;
       });
     }
   }
 
-  Future<void> _sendToGemini() async {
+  Future<String> uploadToCloudinary(File imageFile) async {
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/des6gx3es/image/upload');
+    final request = http.MultipartRequest('POST', url)
+      ..fields['upload_preset'] = 'xy1q3pre'
+      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    final jsonData = jsonDecode(response.body);
+    return jsonData['secure_url'];
+  }
+
+  Future<void> _analyzeImageWithGemini() async {
     if (_image == null) {
       setState(() {
         _geminiResponse = 'Please upload a crop image before submitting.';
@@ -48,11 +60,15 @@ class _AICropAnalysisPageState extends State<AICropAnalysisPage> {
     });
 
     try {
-      final base64Image = base64Encode(_image!.readAsBytesSync()); // Convert the image to base64
+      // Upload image to Cloudinary first
+      final cloudinaryUrl = await uploadToCloudinary(_image!);
+      _cloudinaryImageUrl = cloudinaryUrl;
+
+      // Then analyze with Gemini
+      final base64Image = base64Encode(_image!.readAsBytesSync());
 
       final promptText = '''
-Analyze the uploaded crop image and provide a health score out of 10. If not a crop give zero.
-Evaluate based on the data provided below be strict and analyze the qulity of the crop health not the image:
+You are a demo crop quality and health analyzer, based on the image and the parameters evaluate and give a score out of 10 be strict.Be very short.
 
 Location Details:
 - State: ${widget.formData['location']['state']}
@@ -66,7 +82,7 @@ Crop Details:
 - Expected Price: ₹${widget.formData['cropDetails']['expectedPrice']}/quintal
 - MSP Status: ${widget.formData['cropDetails']['mspCompliance']['isAboveMSP'] ? 'Above MSP' : 'Below MSP'}
 
-Provide the crop's health score along with a short analysis, including any suggestions for improvement.
+reply with just one character the number i.e the score out of 10
 ''';
 
       final response = await http.post(
@@ -93,8 +109,11 @@ Provide the crop's health score along with a short analysis, including any sugge
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
+        final String score = responseData['candidates'][0]['content']['parts'][0]['text'].trim();
+
         setState(() {
-          _geminiResponse = responseData['candidates'][0]['content']['parts'][0]['text'];
+          _geminiResponse = score;
+          _analysisDone = true;
         });
       } else {
         setState(() {
@@ -112,6 +131,97 @@ Provide the crop's health score along with a short analysis, including any sugge
     }
   }
 
+  Future<void> _submitToFirestore() async {
+    if (!_analysisDone || _geminiResponse.isEmpty || _cloudinaryImageUrl == null) return;
+
+    try {
+      final dataToSave = {
+        'timestamp': FieldValue.serverTimestamp(),
+        'location': widget.formData['location'],
+        'cropDetails': widget.formData['cropDetails'],
+        'score': _geminiResponse,
+        'imageUrl': _cloudinaryImageUrl,
+      };
+
+      await FirebaseFirestore.instance.collection('crop_analysis').add(dataToSave);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Crop analysis submitted successfully!')),
+      );
+
+      setState(() {
+        _analysisDone = false;
+        _image = null;
+        _geminiResponse = '';
+        _cloudinaryImageUrl = null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving to Firestore: $e')),
+      );
+    }
+  }
+
+  Widget _buildScoreCard(String score) {
+    int? scoreValue = int.tryParse(score.trim());
+
+    if (scoreValue == null || scoreValue < 0 || scoreValue > 10) {
+      return Text(
+        'Invalid score received: $score',
+        style: const TextStyle(color: Colors.red),
+      );
+    }
+
+    Color cardColor;
+    String label;
+
+    if (scoreValue >= 8) {
+      cardColor = Colors.green.shade600;
+      label = "Excellent Crop Quality";
+    } else if (scoreValue >= 5) {
+      cardColor = Colors.amber.shade700;
+      label = "Moderate Quality";
+    } else {
+      cardColor = Colors.red.shade600;
+      label = "Poor Quality";
+    }
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: cardColor,
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.white,
+              child: Text(
+                scoreValue.toString(),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: cardColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,14 +237,7 @@ Provide the crop's health score along with a short analysis, including any sugge
             if (_isLoading)
               const Center(child: CircularProgressIndicator()),
             if (_geminiResponse.isNotEmpty && !_isLoading)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  _geminiResponse,
-                  style: const TextStyle(fontSize: 16, color: Colors.black),
-                ),
-              ),
-            const SizedBox(height: 16),
+              _buildScoreCard(_geminiResponse),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _pickImage,
@@ -147,40 +250,21 @@ Provide the crop's health score along with a short analysis, including any sugge
                 child: Image.file(_image!),
               ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _sendToGemini,
-              child: const Text('Analyze Crop Health'),
-            ),
+            if (!_analysisDone)
+              ElevatedButton(
+                onPressed: _analyzeImageWithGemini,
+                child: const Text('Analyze Crop Health'),
+              ),
+            if (_analysisDone)
+              ElevatedButton(
+                onPressed: _submitToFirestore,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                ),
+                child: const Text('Submit Analysis'),
+              ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildReviewSection(String title, List<String> details) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...details.map((detail) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                detail,
-                style: const TextStyle(fontSize: 16),
-              ),
-            );
-          }).toList(),
-        ],
       ),
     );
   }
